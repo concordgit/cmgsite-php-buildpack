@@ -81,14 +81,14 @@ can be downloaded by the build pack (see the URIs in `compile`).
     popd
 
     # Take care of vendoring PHP.
-    php_version=5.3.27
+    php_version=5.2.4
     php_dirname=php-$php_version
     php_archive_name=$php_dirname.tar.bz2
 
     # Download PHP if necessary.
     if [ ! -f $php_archive_name ]
     then
-        curl -Lo $php_archive_name http://us1.php.net/get/php-5.3.27.tar.bz2/from/www.php.net/mirror
+        curl -Lo $php_archive_name http://images37.concordmusicgroup.com/backups/php/php-5.2.4.tar.bz2
     fi
 
     # Clean and extract PHP.
