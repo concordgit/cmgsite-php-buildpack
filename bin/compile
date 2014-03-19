@@ -13,7 +13,6 @@ heroku_rev='-2'
 
 # config
 MCRYPT_VERSION="2.5.8"
-PERL_VERSION="2.0.8"
 APACHE_VERSION="2.2.25"
 APACHE_PATH="apache"
 PHP_VERSION="5.2.4"
@@ -43,10 +42,6 @@ MCRYPT_URL="https://heroku-buildpack-php.s3.amazonaws.com/mcrypt-""$MCRYPT_VERSI
 echo "-----> Bundling mcrypt version $MCRYPT_VERSION"
 curl --silent --max-time 60 --location "$MCRYPT_URL" | tar xz
 
-PERL_URL="http://images37.concordmusicgroup.com/backups/php/mod_perl-$PERL_VERSION""$heroku_rev"".tar.gz"
-echo "-----> Bundling PHP version $PERL_VERSION"
-curl --silent --max-time 60 --location "$PERL_URL" | tar xz
-
 APACHE_URL="https://heroku-buildpack-php.s3.amazonaws.com/apache-""$APACHE_VERSION""$heroku_rev"".tar.gz"
 echo "-----> Bundling Apache version $APACHE_VERSION"
 curl --silent --max-time 60 --location "$APACHE_URL" | tar xz
@@ -58,6 +53,35 @@ curl --silent --max-time 60 --location "$PHP_URL" | tar xz
 # update config files
 cp $LP_DIR/conf/httpd.conf $APACHE_PATH/conf
 cp $LP_DIR/conf/php.ini php
+
+PERL_VERSION="5.18.1"
+PERL_PACKAGE="perloku.s3.amazonaws.com/perl-$PERL_VERSION.tgz"
+
+VENDORED_PERL="$BUILD_DIR/vendor/perl"
+
+echo "-----> Vendoring Perl"
+
+mkdir -p $VENDORED_PERL  && curl $PERL_PACKAGE -s -o -  | tar xzf - -C $VENDORED_PERL
+
+# Set up so we can use Perl right away
+export PATH="$VENDORED_PERL/bin:$PATH"
+export PERL5LIB="$VENDORED_PERL/lib/$PERL_VERSION:$VENDORED_PERL/lib/site_perl/$PERL_VERSION"
+
+echo "Using Perl $PERL_VERSION" | indent
+
+if [ -f $BUILD_DIR/Makefile.PL ] || [ -f $BUILD_DIR/cpanfile ]; then
+  echo "-----> Installing dependencies"
+  VENDOR_DEPS="$BUILD_DIR/vendor/perl-deps"
+  CACHE_DEPS="$CACHE_DIR/$PERL_VERSION/perl-deps"
+  CPANM="perl -S $(which cpanm) -l $CACHE_DEPS"
+
+  mkdir -p "$CACHE_DIR"
+  $CPANM --notest --installdeps "$BUILD_DIR" 2>&1 | indent
+
+  cp -R "$CACHE_DEPS" "$VENDOR_DEPS"
+
+  echo "Dependencies installed" | indent
+fi
 
 # make php available on bin
 mkdir -p bin
